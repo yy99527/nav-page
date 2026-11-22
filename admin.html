@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>导航页 · 后台管理</title>
+  <style>
+    :root {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --text: #0f172a;
+      --secondary: #64748b;
+      --border: #e2e8f0;
+      --accent: #6366f1;
+      --accent-soft: rgba(99, 102, 241, 0.1);
+      --danger: #ef4444;
+      --ok: #10b981;
+      --radius: 12px;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 24px 16px 80px; }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
+    }
+    h1 { margin: 0; font-size: 1.4rem; }
+    .muted { color: var(--secondary); font-size: 0.85rem; }
+    .toolbar {
+      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px;
+    }
+    button {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 8px 14px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      transition: all 0.15s ease;
+    }
+    button:hover { border-color: var(--accent); color: var(--accent); }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    button.primary:hover { filter: brightness(1.07); color: #fff; }
+    button.danger { color: var(--danger); }
+    button.danger:hover { border-color: var(--danger); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .login-form { max-width: 460px; margin: 10vh auto; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 0.85rem; margin-bottom: 6px; color: var(--secondary); }
+    .field input, .field textarea {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+      border-radius: 10px; font-size: 0.92rem; font-family: inherit; background: #f8fafc;
+    }
+    .field input:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+    .hint { font-size: 0.78rem; color: var(--secondary); margin-top: 6px; line-height: 1.5; }
+    .alert { padding: 10px 14px; border-radius: 10px; font-size: 0.86rem; margin-bottom: 12px; }
+    .alert.ok { background: rgba(16, 185, 129, 0.1); color: #047857; }
+    .alert.err { background: rgba(239, 68, 68, 0.1); color: #b91c1c; }
+
+    .section-card { margin-bottom: 14px; border: 1px solid var(--border); border-radius: var(--radius); background: #fbfcfe; }
+    .section-head {
+      display: flex; align-items: center; gap: 8px; padding: 12px 14px;
+      border-bottom: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .section-head .name { font-weight: 700; flex: 1; min-width: 120px; }
+    .mini { padding: 4px 8px; font-size: 0.75rem; }
+    .item-row {
+      display: grid; grid-template-columns: 34px 1fr 1.4fr 1fr auto;
+      gap: 8px; align-items: center; padding: 8px 14px;
+      border-bottom: 1px dashed var(--border); font-size: 0.85rem;
+    }
+    .item-row:last-child { border-bottom: none; }
+    .item-row .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .item-row .d { color: var(--secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .item-row .u { color: var(--secondary); font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .item-actions { display: flex; gap: 4px; }
+    .badge {
+      font-size: 0.7rem; padding: 2px 8px; border-radius: 999px;
+      background: var(--accent-soft); color: var(--accent);
+    }
+    .add-row { margin: 8px 14px; }
+    @media (max-width: 640px) {
+      .item-row { grid-template-columns: 28px 1fr auto; }
+      .item-row .d, .item-row .u { display: none; }
+    }
+    .modal-mask {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45);
+      display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px;
+    }
+    .modal {
+      background: var(--surface); border-radius: 16px; padding: 22px;
+      width: 100%; max-width: 520px; max-height: 90vh; overflow: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .modal h3 { margin: 0 0 16px; }
+    .modal .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- 登录 -->
+    <div id="loginPanel" class="panel login-form" hidden>
+      <h1>🔐 登录后台</h1>
+      <p class="muted">后台通过 GitHub API 直接读写仓库中的 links.json，无需服务器。</p>
+      <div class="field">
+        <label>GitHub 仓库（用户名/仓库名）</label>
+        <input id="repoInput" placeholder="例如 yy99527/nav-page" />
+      </div>
+      <div class="field">
+        <label>GitHub Token（Fine-grained，Contents 读写权限）</label>
+        <input id="tokenInput" type="password" placeholder="github_pat_..." />
+      </div>
+      <div class="field">
+        <label>设置一个短密码（用于下次快速登录，保存在本浏览器）</label>
+        <input id="pwdInput" type="password" placeholder="自定义短密码" />
+      </div>
+      <div class="hint">
+        如何创建 Token：GitHub → Settings → Developer settings → Personal access tokens →
+        Fine-grained tokens → Generate new token → 仅选择本仓库 → Repository permissions →
+        Contents 设为 <b>Read and write</b>。到期后需重新生成。
+      </div>
+      <div class="actions" style="display:flex; gap:10px; margin-top:16px; justify-content:flex-end;">
+        <button class="primary" onclick="doLogin()">进入后台</button>
+      </div>
+    </div>
+
+    <!-- 编辑 -->
+    <div id="editorPanel" hidden>
+      <header>
+        <div>
+          <h1>🧭 导航页后台</h1>
+          <div class="muted" id="repoLabel"></div>
+        </div>
+        <button class="danger" onclick="doLogout()">退出</button>
+      </header>
+      <div class="toolbar">
+        <button onclick="loadData()">🔄 重新加载</button>
+        <button onclick="addSection()">➕ 新建分类</button>
+        <button class="primary" onclick="saveToGitHub()">💾 保存到 GitHub</button>
+        <button onclick="exportJSON()">⬇️ 导出 JSON</button>
+        <button onclick="document.getElementById('importFile').click()">⬆️ 导入 JSON</button>
+        <input type="file" id="importFile" accept=".json,application/json" hidden onchange="importJSON(this)" />
+      </div>
+      <div id="alertBox"></div>
+      <div id="sections"></div>
+    </div>
+  </div>
+
+  <!-- 编辑弹窗 -->
+  <div id="modalMask" class="modal-mask" hidden>
+    <div class="modal">
+      <h3 id="modalTitle">编辑</h3>
+      <div class="field">
+        <label>标题 *</label>
+        <input id="f_title" />
+      </div>
+      <div class="field">
+        <label>网址 *（https://...）</label>
+        <input id="f_url" placeholder="https://" />
+      </div>
+      <div class="field">
+        <label>内网地址（可选，开启内外网切换时生效）</label>
+        <input id="f_intranet" placeholder="http://192.168.x.x:端口/" />
+      </div>
+      <div class="field">
+        <label>简介</label>
+        <input id="f_desc" />
+      </div>
+      <div class="field">
+        <label>关键词（用于站内搜索，空格分隔）</label>
+        <input id="f_keywords" placeholder="例如：b站 视频 弹幕" />
+      </div>
+      <div class="field">
+        <label>自定义图标（可选，填图标 URL 或本地路径）</label>
+        <input id="f_icon" placeholder="留空则自动抓取 favicon" />
+      </div>
+      <div class="actions">
+        <button onclick="closeModal()">取消</button>
+        <button class="primary" id="modalSaveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var DEFAULT_REPO = "yy99527/nav-page";
+    var repo = localStorage.getItem("navAdminRepo") || DEFAULT_REPO;
+    var token = localStorage.getItem("navAdminToken") || "";
+    var shortPwd = localStorage.getItem("navAdminPwd") || "";
+    var data = [];
+    var editing = null; // { sectionIndex, itemIndex } 或 { sectionIndex }
+    var modalType = "item"; // item | section
+
+    function $(id) { return document.getElementById(id); }
+    function alert(msg, ok) {
+      var box = $("alertBox");
+      box.innerHTML = '<div class="alert ' + (ok ? "ok" : "err") + '">' + msg + "</div>";
+      if (ok) setTimeout(function () { box.innerHTML = ""; }, 4000);
+    }
+    function b64encode(str) {
+      return btoa(unescape(encodeURIComponent(str)));
+    }
+
+    /* ---------- 登录 ---------- */
+    function doLogin() {
+      var r = $("repoInput").value.trim();
+      var t = $("tokenInput").value.trim();
+      var p = $("pwdInput").value.trim();
+      if (!r || !t || !p) { alert("请完整填写仓库、Token 和短密码", false); return; }
+      repo = r; token = t; shortPwd = p;
+      localStorage.setItem("navAdminRepo", repo);
+      localStorage.setItem("navAdminToken", token);
+      localStorage.setItem("navAdminPwd", shortPwd);
+      enterEditor();
+      loadData();
+    }
+    function doLogout() {
+      localStorage.removeItem("navAdminToken");
+      localStorage.removeItem("navAdminPwd");
+      token = ""; shortPwd = "";
+      showLogin();
+    }
+    function showLogin() {
+      $("loginPanel").hidden = false;
+      $("editorPanel").hidden = true;
+      $("repoInput").value = repo || DEFAULT_REPO;
+      $("tokenInput").value = "";
+      $("pwdInput").value = "";
+    }
+    function enterEditor() {
+      $("loginPanel").hidden = true;
+      $("editorPanel").hidden = false;
+      $("repoLabel").textContent = "仓库：" + repo + " · 数据文件：links.json";
+    }
+
+    /* ---------- 数据加载 / 保存 ---------- */
+    function loadData() {
+      fetch("https://api.github.com/repos/" + repo + "/contents/links.json", {
+        headers: { Authorization: "token " + token, Accept: "application/vnd.github+json" }
+      })
+        .then(function (res) {
+          if (res.status === 401 || res.status === 403) throw new Error("Token 无效或权限不足，请重新登录");
+          if (res.status === 404) throw new Error("仓库中还没有 links.json，请先保存一次");
+          if (!res.ok) throw new Error("GitHub API 错误：" + res.status);
+          return res.json();
+        })
+        .then(function (file) {
+          data = JSON.parse(decodeURIComponent(escape(atob(file.content.replace(/\s/g, "")))));
+          renderSections();
+          alert("已从 GitHub 加载 " + data.length + " 个分类", true);
+        })
+        .catch(function (err) {
+          alert("加载失败：" + err.message + "。可尝试重新登录，或新建分类后保存。", false);
+          renderSections();
+        });
+    }
+
+    function saveToGitHub() {
+      if (!token) { alert("请先登录", false); return; }
+      var content = JSON.stringify(data, null, 2);
+      var url = "https://api.github.com/repos/" + repo + "/contents/links.json";
+      fetch(url, { headers: { Authorization: "token " + token, Accept: "application/vnd.github+json" } })
+        .then(function (res) {
+          if (res.status === 404) return { sha: null };
+          if (!res.ok) throw new Error("读取文件失败：" + res.status);
+          return res.json();
+        })
+        .then(function (file) {
+          var body = {
+            message: "docs: 更新导航数据 links.json",
+            content: b64encode(content),
+            branch: "main"
+          };
+          if (file.sha) body.sha = file.sha;
+          return fetch(url, {
+            method: "PUT",
+            headers: { Authorization: "token " + token, Accept: "application/vnd.github+json" },
+            body: JSON.stringify(body)
+          });
+        })
+        .then(function (res) {
+          if (!res.ok) return res.json().then(function (j) { throw new Error(j.message || res.status); });
+          return res.json();
+        })
+        .then(function () {
+          alert("已保存到 GitHub ✅ 导航页约 1 分钟后生效（Cloudflare/Pages 通常几秒内）", true);
+        })
+        .catch(function (err) {
+          alert("保存失败：" + err.message, false);
+        });
+    }
+
+    function exportJSON() {
+      var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "links.json";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+    function importJSON(input) {
+      var file = input.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var parsed = JSON.parse(reader.result);
+          if (!Array.isArray(parsed)) throw new Error("格式应为数组");
+          data = parsed;
+          renderSections();
+          alert("导入成功，记得点击“保存到 GitHub”", true);
+        } catch (e) {
+          alert("导入失败：" + e.message, false);
+        }
+      };
+      reader.readAsText(file);
+      input.value = "";
+    }
+
+    /* ---------- 渲染 ---------- */
+    function renderSections() {
+      var box = $("sections");
+      box.innerHTML = "";
+      if (!data.length) {
+        box.innerHTML = '<div class="panel muted">暂无数据，点击上方“新建分类”开始。</div>';
+        return;
+      }
+      data.forEach(function (section, si) {
+        var card = document.createElement("div");
+        card.className = "section-card";
+        var head = document.createElement("div");
+        head.className = "section-head";
+        head.innerHTML =
+          '<span class="name">' + esc(section.section || "未命名分类") + "</span>" +
+          '<span class="badge">' + (section.items || []).length + " 个站点</span>" +
+          '<button class="mini" onclick="moveSection(' + si + ',-1)">↑</button>' +
+          '<button class="mini" onclick="moveSection(' + si + ',1)">↓</button>' +
+          '<button class="mini" onclick="editSection(' + si + ')">✏️ 重命名</button>' +
+          '<button class="mini danger" onclick="deleteSection(' + si + ')">🗑️</button>';
+        card.appendChild(head);
+
+        (section.items || []).forEach(function (item, ii) {
+          var row = document.createElement("div");
+          row.className = "item-row";
+          var icon = document.createElement("span");
+          icon.textContent = item.icon ? "🖼️" : "🔗";
+          row.appendChild(icon);
+          var t = document.createElement("span");
+          t.className = "t";
+          t.textContent = item.title || "(无标题)";
+          row.appendChild(t);
+          var d = document.createElement("span");
+          d.className = "d";
+          d.textContent = item.desc || "";
+          row.appendChild(d);
+          var u = document.createElement("span");
+          u.className = "u";
+          u.textContent = item.url || "";
+          row.appendChild(u);
+          var actions = document.createElement("div");
+          actions.className = "item-actions";
+          actions.innerHTML =
+            '<button class="mini" onclick="moveItem(' + si + "," + ii + ",-1)\">↑</button>" +
+            '<button class="mini" onclick="moveItem(' + si + "," + ii + ",1)\">↓</button>" +
+            '<button class="mini" onclick="editItem(' + si + "," + ii + ')">✏️</button>" +
+            '<button class="mini danger" onclick="deleteItem(' + si + "," + ii + ')">✕</button>';
+          row.appendChild(actions);
+          card.appendChild(row);
+        });
+
+        var add = document.createElement("div");
+        add.className = "add-row";
+        add.innerHTML = '<button onclick="addItem(' + si + ')">➕ 添加站点</button>';
+        card.appendChild(add);
+        box.appendChild(card);
+      });
+    }
+
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
+    }
+
+    /* ---------- 分类操作 ---------- */
+    function addSection() {
+      modalType = "section";
+      editing = { sectionIndex: -1 };
+      $("modalTitle").textContent = "新建分类";
+      $("f_title").value = "";
+      openModal();
+    }
+    function editSection(si) {
+      modalType = "section";
+      editing = { sectionIndex: si };
+      $("modalTitle").textContent = "重命名分类";
+      $("f_title").value = data[si].section || "";
+      openModal();
+    }
+    function deleteSection(si) {
+      if (!confirm("确定删除分类「" + (data[si].section || "") + "」及其所有站点？")) return;
+      data.splice(si, 1);
+      renderSections();
+    }
+    function moveSection(si, dir) {
+      var target = si + dir;
+      if (target < 0 || target >= data.length) return;
+      var tmp = data[si]; data[si] = data[target]; data[target] = tmp;
+      renderSections();
+    }
+
+    /* ---------- 站点操作 ---------- */
+    function addItem(si) {
+      modalType = "item";
+      editing = { sectionIndex: si, itemIndex: -1 };
+      $("modalTitle").textContent = "添加站点 → " + data[si].section;
+      clearItemForm();
+      openModal();
+    }
+    function editItem(si, ii) {
+      modalType = "item";
+      editing = { sectionIndex: si, itemIndex: ii };
+      var item = data[si].items[ii];
+      $("modalTitle").textContent = "编辑站点 → " + data[si].section;
+      $("f_title").value = item.title || "";
+      $("f_url").value = item.url || "";
+      $("f_intranet").value = item.intranet || "";
+      $("f_desc").value = item.desc || "";
+      $("f_keywords").value = item.keywords || item["data-desc"] || "";
+      $("f_icon").value = item.icon || "";
+      openModal();
+    }
+    function deleteItem(si, ii) {
+      if (!confirm("确定删除站点「" + (data[si].items[ii].title || "") + "」？")) return;
+      data[si].items.splice(ii, 1);
+      renderSections();
+    }
+    function moveItem(si, ii, dir) {
+      var items = data[si].items;
+      var target = ii + dir;
+      if (target < 0 || target >= items.length) return;
+      var tmp = items[ii]; items[ii] = items[target]; items[target] = tmp;
+      renderSections();
+    }
+
+    /* ---------- 弹窗 ---------- */
+    function clearItemForm() {
+      ["f_title", "f_url", "f_intranet", "f_desc", "f_keywords", "f_icon"].forEach(function (id) {
+        $(id).value = "";
+      });
+    }
+    function openModal() {
+      $("modalMask").hidden = false;
+      $("f_title").focus();
+    }
+    function closeModal() {
+      $("modalMask").hidden = true;
+      editing = null;
+    }
+    function saveModal() {
+      if (modalType === "section") {
+        var name = $("f_title").value.trim();
+        if (!name) { alert("分类名不能为空", false); return; }
+        if (editing.sectionIndex === -1) data.push({ section: name, items: [] });
+        else data[editing.sectionIndex].section = name;
+      } else {
+        var title = $("f_title").value.trim();
+        var url = $("f_url").value.trim();
+        if (!title || !url) { alert("标题和网址不能为空", false); return; }
+        var obj = {
+          title: title,
+          url: url,
+          desc: $("f_desc").value.trim(),
+          keywords: $("f_keywords").value.trim()
+        };
+        var intranet = $("f_intranet").value.trim();
+        var icon = $("f_icon").value.trim();
+        if (intranet) obj.intranet = intranet;
+        if (icon) obj.icon = icon;
+        if (editing.itemIndex === -1) data[editing.sectionIndex].items.push(obj);
+        else data[editing.sectionIndex].items[editing.itemIndex] = obj;
+      }
+      closeModal();
+      renderSections();
+    }
+    $("modalSaveBtn").addEventListener("click", saveModal);
+    $("modalMask").addEventListener("click", function (e) {
+      if (e.target === $("modalMask")) closeModal();
+    });
+
+    /* ---------- 启动 ---------- */
+    (function boot() {
+      if (token && shortPwd) {
+        enterEditor();
+        loadData();
+      } else {
+        showLogin();
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+services:
+  nav-page:
+    build: .
+    container_name: nav-page
+    ports:
+      - "8080:80"
+    restart: unless-stopped

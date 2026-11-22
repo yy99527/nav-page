@@ -1,0 +1,19 @@
+{
+  "name": "我的导航",
+  "short_name": "导航",
+  "description": "轻量、无需服务器、支持多端部署的个人导航页",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "icons/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

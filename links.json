@@ -1,0 +1,91 @@
+[
+  {
+    "section": "常用",
+    "items": [
+      { "title": "哔哩哔哩", "url": "https://www.bilibili.com/", "desc": "视频、动漫、弹幕", "keywords": "b站 bilibili 视频" },
+      { "title": "抖音", "url": "https://www.douyin.com/", "desc": "短视频精选", "keywords": "douyin 短视频" },
+      { "title": "微博", "url": "https://weibo.com/", "desc": "热点资讯", "keywords": "weibo 热搜" },
+      { "title": "知乎", "url": "https://www.zhihu.com/", "desc": "问答社区", "keywords": "zhihu 问答" },
+      { "title": "小红书", "url": "https://www.xiaohongshu.com/", "desc": "生活方式分享", "keywords": "redbook 种草" },
+      { "title": "豆瓣", "url": "https://www.douban.com/", "desc": "书影音社区", "keywords": "douban 电影 读书" }
+    ]
+  },
+  {
+    "section": "AI 工具",
+    "items": [
+      { "title": "DeepSeek", "url": "https://chat.deepseek.com/", "desc": "深度思考 AI 助手", "keywords": "深度求索 AI 大模型 对话" },
+      { "title": "ChatGPT", "url": "https://chatgpt.com/", "desc": "OpenAI 对话助手", "keywords": "openai gpt" },
+      { "title": "Claude", "url": "https://claude.ai/", "desc": "Anthropic 对话助手", "keywords": "anthropic ai" },
+      { "title": "Gemini", "url": "https://gemini.google.com/", "desc": "Google AI 助手", "keywords": "google ai bard" },
+      { "title": "Kimi", "url": "https://kimi.moonshot.cn/", "desc": "月之暗面 AI 助手", "keywords": "moonshot 长文本" },
+      { "title": "通义千问", "url": "https://tongyi.aliyun.com/", "desc": "阿里 AI 助手", "keywords": "阿里 qwen" },
+      { "title": "豆包", "url": "https://www.doubao.com/", "desc": "字节跳动 AI 助手", "keywords": "字节 抖音 AI" },
+      { "title": "文心一言", "url": "https://yiyan.baidu.com/", "desc": "百度 AI 助手", "keywords": "百度 ernie" }
+    ]
+  },
+  {
+    "section": "开发",
+    "items": [
+      { "title": "GitHub", "url": "https://github.com/", "desc": "代码托管与开源", "keywords": "git 开源 仓库" },
+      { "title": "Gitee", "url": "https://gitee.com/", "desc": "国内代码托管", "keywords": "码云 git" },
+      { "title": "Stack Overflow", "url": "https://stackoverflow.com/", "desc": "程序员问答", "keywords": "stackoverflow 问答" },
+      { "title": "MDN", "url": "https://developer.mozilla.org/", "desc": "Web 开发文档", "keywords": "mozilla 文档 web" },
+      { "title": "npm", "url": "https://www.npmjs.com/", "desc": "Node 包管理", "keywords": "node package" },
+      { "title": "Vercel", "url": "https://vercel.com/", "desc": "前端部署平台", "keywords": "部署 serverless" },
+      { "title": "Cloudflare", "url": "https://dash.cloudflare.com/", "desc": "CDN 与无服务器平台", "keywords": "cdn workers pages" },
+      { "title": "LeetCode", "url": "https://leetcode.cn/", "desc": "算法刷题", "keywords": "算法 面试 力扣" }
+    ]
+  },
+  {
+    "section": "云服务",
+    "items": [
+      { "title": "阿里云", "url": "https://www.aliyun.com/", "desc": "云计算服务", "keywords": "aliyun 服务器" },
+      { "title": "腾讯云", "url": "https://cloud.tencent.com/", "desc": "云计算服务", "keywords": "tencent cloud" },
+      { "title": "华为云", "url": "https://www.huaweicloud.com/", "desc": "云计算服务", "keywords": "huawei cloud" },
+      { "title": "AWS", "url": "https://aws.amazon.com/", "desc": "亚马逊云", "keywords": "amazon cloud" },
+      { "title": "Cloudflare Pages", "url": "https://pages.cloudflare.com/", "desc": "免费静态托管", "keywords": "pages 静态托管" },
+      { "title": "Netlify", "url": "https://www.netlify.com/", "desc": "静态站点托管", "keywords": "静态 部署" }
+    ]
+  },
+  {
+    "section": "学习",
+    "items": [
+      { "title": "中国大学MOOC", "url": "https://www.icourse163.org/", "desc": "国内名校课程", "keywords": "mooc 课程" },
+      { "title": "学堂在线", "url": "https://www.xuetangx.com/", "desc": "清华在线课程", "keywords": "课程 清华" },
+      { "title": "Coursera", "url": "https://www.coursera.org/", "desc": "国际名校课程", "keywords": "课程 国际" },
+      { "title": "菜鸟教程", "url": "https://www.runoob.com/", "desc": "编程入门教程", "keywords": "runoob 教程 入门" },
+      { "title": "W3School", "url": "https://www.w3school.com.cn/", "desc": "Web 技术教程", "keywords": "w3c html css" },
+      { "title": "哔哩哔哩课堂", "url": "https://www.bilibili.com/cheese/", "desc": "B站知识课堂", "keywords": "课程 学习" }
+    ]
+  },
+  {
+    "section": "影音",
+    "items": [
+      { "title": "YouTube", "url": "https://www.youtube.com/", "desc": "全球视频平台", "keywords": "视频 google" },
+      { "title": "腾讯视频", "url": "https://v.qq.com/", "desc": "腾讯视频平台", "keywords": "视频 剧集" },
+      { "title": "爱奇艺", "url": "https://www.iqiyi.com/", "desc": "视频平台", "keywords": "视频 综艺" },
+      { "title": "优酷", "url": "https://www.youku.com/", "desc": "视频平台", "keywords": "视频 剧集" },
+      { "title": "网易云音乐", "url": "https://music.163.com/", "desc": "音乐与歌单", "keywords": "音乐 歌单" },
+      { "title": "QQ音乐", "url": "https://y.qq.com/", "desc": "腾讯音乐", "keywords": "音乐 歌曲" }
+    ]
+  },
+  {
+    "section": "效率",
+    "items": [
+      { "title": "Notion", "url": "https://www.notion.so/", "desc": "笔记与知识库", "keywords": "笔记 知识管理" },
+      { "title": "语雀", "url": "https://www.yuque.com/", "desc": "阿里知识库", "keywords": "笔记 文档" },
+      { "title": "飞书", "url": "https://www.feishu.cn/", "desc": "协作办公", "keywords": "lark 办公 协作" },
+      { "title": "腾讯文档", "url": "https://docs.qq.com/", "desc": "在线文档", "keywords": "文档 协作" },
+      { "title": "印象笔记", "url": "https://www.yinxiang.com/", "desc": "笔记应用", "keywords": "evernote 笔记" },
+      { "title": "DeepL", "url": "https://www.deepl.com/translator", "desc": "高质量翻译", "keywords": "翻译 translate" }
+    ]
+  },
+  {
+    "section": "内网示例（可删）",
+    "items": [
+      { "title": "fnOS 管理面板", "url": "https://fnos.example.com/", "intranet": "http://192.168.1.100:8000/", "desc": "示例：外网域名 + 内网地址", "keywords": "nas fnos 飞牛 内网" },
+      { "title": "AList 网盘", "url": "https://alist.example.com/", "intranet": "http://192.168.1.100:5244/", "desc": "示例：把 url 换成你的外网地址", "keywords": "alist 网盘 内网" },
+      { "title": "路由器后台", "url": "http://192.168.1.1/", "intranet": "http://192.168.1.1/", "desc": "示例：内外网同地址", "keywords": "router 路由器 网关" }
+    ]
+  }
+]
