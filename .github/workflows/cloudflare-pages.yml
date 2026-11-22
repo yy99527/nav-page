@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  deployments: write
 
 jobs:
   deploy:
@@ -42,17 +43,16 @@ jobs:
         run: |
           if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ] || [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "未检测到 CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID，跳过部署。"
+            echo "未检测到 CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID，本次跳过 Cloudflare 部署。"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Deploy to Cloudflare Pages
         if: steps.check.outputs.skip == 'false'
-        uses: cloudflare/pages-action@1
+        uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          projectName: nav-page
-          directory: _site
+          command: pages deploy _site --project-name=nav-page
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
