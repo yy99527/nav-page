@@ -1,0 +1,12 @@
+.git
+.gitignore
+.github
+node_modules
+.wrangler
+_site
+.DS_Store
+*.log
+Dockerfile
+docker-compose.yml
+.dockerignore
+.assetsignore

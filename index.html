@@ -27,6 +27,9 @@
       </div>
     </header>
 
+    <!-- 问候语 / 时钟 -->
+    <div class="greeting" id="greeting"></div>
+
     <!-- 搜索区域 -->
     <section class="search-wrapper">
       <div class="search-tabs" id="searchTabs" role="tablist" aria-label="搜索引擎分类"></div>
@@ -68,12 +71,75 @@
     </footer>
   </div>
 
+  <!-- 前台管理：登录/注册弹窗 -->
+  <div id="authMask" class="modal-mask" hidden>
+    <div class="modal">
+      <h3 id="authTitle">🔐 登录</h3>
+      <p class="modal-sub" id="authDesc"></p>
+      <div id="authAlert"></div>
+      <div class="field">
+        <label>用户名</label>
+        <input id="authUsername" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label>密码（至少 6 位）</label>
+        <input id="authPassword" type="password" autocomplete="current-password" />
+      </div>
+      <div class="field" id="authConfirmField" hidden>
+        <label>确认密码</label>
+        <input id="authConfirm" type="password" autocomplete="new-password" />
+      </div>
+      <div class="modal-actions">
+        <button id="authSwitchBtn" type="button">没有账号？去注册</button>
+        <button class="primary-btn" id="authSubmitBtn" type="button">登录</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 前台管理：站点/分类编辑弹窗 -->
+  <div id="editMask" class="modal-mask" hidden>
+    <div class="modal">
+      <h3 id="editTitle">编辑</h3>
+      <div class="field">
+        <label>标题 *</label>
+        <input id="e_title" />
+      </div>
+      <div class="field">
+        <label>网址 *（https://...）</label>
+        <input id="e_url" placeholder="https://" />
+      </div>
+      <div class="field">
+        <label>内网地址（可选）</label>
+        <input id="e_intranet" placeholder="http://192.168.x.x:端口/" />
+      </div>
+      <div class="field">
+        <label>简介</label>
+        <input id="e_desc" />
+      </div>
+      <div class="field">
+        <label>关键词（搜索用，空格分隔）</label>
+        <input id="e_keywords" />
+      </div>
+      <div class="field">
+        <label>自定义图标（可选）</label>
+        <input id="e_icon" placeholder="留空则自动抓取 favicon" />
+      </div>
+      <div class="modal-actions">
+        <button id="editCancelBtn" type="button">取消</button>
+        <button class="primary-btn" id="editSaveBtn" type="button">保存</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 浮动按钮 -->
+  <button class="float-btn login-btn" id="loginBtn" hidden>🔐 登录</button>
+  <button class="float-btn edit-btn" id="editBtn" hidden>✏️ 编辑</button>
   <button class="float-btn net-toggle-btn" id="netToggleBtn" title="切换内外网" hidden>🌐 外网</button>
   <button class="float-btn back-top-btn" id="backTopBtn" title="回到顶部" hidden>↑</button>
 
   <script src="pinyin-pro.min.js"></script>
   <script src="config.js"></script>
+  <script src="nav-admin.js"></script>
   <script src="main.js"></script>
 </body>
 </html>

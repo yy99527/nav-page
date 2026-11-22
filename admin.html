@@ -33,9 +33,7 @@
     }
     h1 { margin: 0; font-size: 1.4rem; }
     .muted { color: var(--secondary); font-size: 0.85rem; }
-    .toolbar {
-      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px;
-    }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
     button {
       border: 1px solid var(--border);
       background: var(--surface);
@@ -61,7 +59,7 @@
       padding: 20px;
       margin-bottom: 16px;
     }
-    .login-form { max-width: 460px; margin: 10vh auto; }
+    .auth-form { max-width: 460px; margin: 8vh auto; }
     .field { margin-bottom: 14px; }
     .field label { display: block; font-size: 0.85rem; margin-bottom: 6px; color: var(--secondary); }
     .field input, .field textarea {
@@ -69,7 +67,7 @@
       border-radius: 10px; font-size: 0.92rem; font-family: inherit; background: #f8fafc;
     }
     .field input:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
-    .hint { font-size: 0.78rem; color: var(--secondary); margin-top: 6px; line-height: 1.5; }
+    .hint { font-size: 0.78rem; color: var(--secondary); margin-top: 6px; line-height: 1.6; }
     .alert { padding: 10px 14px; border-radius: 10px; font-size: 0.86rem; margin-bottom: 12px; }
     .alert.ok { background: rgba(16, 185, 129, 0.1); color: #047857; }
     .alert.err { background: rgba(239, 68, 68, 0.1); color: #b91c1c; }
@@ -91,10 +89,7 @@
     .item-row .d { color: var(--secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .item-row .u { color: var(--secondary); font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .item-actions { display: flex; gap: 4px; }
-    .badge {
-      font-size: 0.7rem; padding: 2px 8px; border-radius: 999px;
-      background: var(--accent-soft); color: var(--accent);
-    }
+    .badge { font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
     .add-row { margin: 8px 14px; }
     @media (max-width: 640px) {
       .item-row { grid-template-columns: 28px 1fr auto; }
@@ -111,14 +106,45 @@
     }
     .modal h3 { margin: 0 0 16px; }
     .modal .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+    .mode-tabs { display: flex; gap: 0; margin-bottom: 16px; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .mode-tabs button { flex: 1; border: none; border-radius: 0; padding: 10px; background: var(--surface); }
+    .mode-tabs button.active { background: var(--accent-soft); color: var(--accent); font-weight: 700; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <!-- 登录 -->
-    <div id="loginPanel" class="panel login-form" hidden>
-      <h1>🔐 登录后台</h1>
-      <p class="muted">后台通过 GitHub API 直接读写仓库中的 links.json，无需服务器。</p>
+    <!-- 账号登录 / 注册（后端模式） -->
+    <div id="authPanel" class="panel auth-form" hidden>
+      <h1 id="authTitle">🔐 登录后台</h1>
+      <p class="muted" id="authDesc">首次使用将注册管理员账号，后续编辑需登录。</p>
+      <div id="authAlert"></div>
+      <div class="field">
+        <label>用户名</label>
+        <input id="authUsername" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label>密码（至少 6 位）</label>
+        <input id="authPassword" type="password" autocomplete="current-password" />
+      </div>
+      <div class="field" id="authConfirmField" hidden>
+        <label>确认密码</label>
+        <input id="authConfirm" type="password" autocomplete="new-password" />
+      </div>
+      <div class="actions" style="display:flex; gap:10px; margin-top:16px; justify-content:space-between; align-items:center;">
+        <button id="authSwitchBtn" onclick="toggleAuthMode()">没有账号？去注册</button>
+        <button class="primary" id="authSubmitBtn" onclick="submitAuth()">登录</button>
+      </div>
+      <div class="hint" id="authHint">
+        提示：账号保存在你的 Cloudflare D1 数据库中（免费额度），密码加密存储。
+        若这里显示“未配置后端”，请查看 README 的账号系统部署教程。
+      </div>
+    </div>
+
+    <!-- GitHub Token 登录（纯静态回退） -->
+    <div id="githubPanel" class="panel auth-form" hidden>
+      <h1>🔑 GitHub Token 登录</h1>
+      <p class="muted">当前为纯静态部署（无后端），使用 GitHub Token 直接读写仓库里的 links.json。</p>
+      <div id="githubAlert"></div>
       <div class="field">
         <label>GitHub 仓库（用户名/仓库名）</label>
         <input id="repoInput" placeholder="例如 yy99527/nav-page" />
@@ -128,16 +154,16 @@
         <input id="tokenInput" type="password" placeholder="github_pat_..." />
       </div>
       <div class="field">
-        <label>设置一个短密码（用于下次快速登录，保存在本浏览器）</label>
+        <label>短密码（保存在本浏览器，用于下次快速进入）</label>
         <input id="pwdInput" type="password" placeholder="自定义短密码" />
       </div>
       <div class="hint">
         如何创建 Token：GitHub → Settings → Developer settings → Personal access tokens →
         Fine-grained tokens → Generate new token → 仅选择本仓库 → Repository permissions →
-        Contents 设为 <b>Read and write</b>。到期后需重新生成。
+        Contents 设为 <b>Read and write</b>。
       </div>
       <div class="actions" style="display:flex; gap:10px; margin-top:16px; justify-content:flex-end;">
-        <button class="primary" onclick="doLogin()">进入后台</button>
+        <button class="primary" onclick="doGithubLogin()">进入后台</button>
       </div>
     </div>
 
@@ -148,12 +174,15 @@
           <h1>🧭 导航页后台</h1>
           <div class="muted" id="repoLabel"></div>
         </div>
-        <button class="danger" onclick="doLogout()">退出</button>
+        <div style="display:flex; gap:8px;">
+          <button id="pwdBtn" onclick="openPwdModal()" hidden>🔒 修改密码</button>
+          <button class="danger" onclick="doLogout()">退出</button>
+        </div>
       </header>
       <div class="toolbar">
         <button onclick="loadData()">🔄 重新加载</button>
         <button onclick="addSection()">➕ 新建分类</button>
-        <button class="primary" onclick="saveToGitHub()">💾 保存到 GitHub</button>
+        <button class="primary" onclick="saveData()">💾 保存</button>
         <button onclick="exportJSON()">⬇️ 导出 JSON</button>
         <button onclick="document.getElementById('importFile').click()">⬆️ 导入 JSON</button>
         <input type="file" id="importFile" accept=".json,application/json" hidden onchange="importJSON(this)" />
@@ -163,7 +192,7 @@
     </div>
   </div>
 
-  <!-- 编辑弹窗 -->
+  <!-- 站点/分类编辑弹窗 -->
   <div id="modalMask" class="modal-mask" hidden>
     <div class="modal">
       <h3 id="modalTitle">编辑</h3>
@@ -198,61 +227,148 @@
     </div>
   </div>
 
+  <!-- 修改密码弹窗 -->
+  <div id="pwdMask" class="modal-mask" hidden>
+    <div class="modal">
+      <h3>🔒 修改密码</h3>
+      <div class="field">
+        <label>原密码</label>
+        <input id="p_old" type="password" autocomplete="current-password" />
+      </div>
+      <div class="field">
+        <label>新密码（至少 6 位）</label>
+        <input id="p_new" type="password" autocomplete="new-password" />
+      </div>
+      <div class="actions">
+        <button onclick="closePwdModal()">取消</button>
+        <button class="primary" id="pwdSaveBtn">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="nav-admin.js"></script>
   <script>
     var DEFAULT_REPO = "yy99527/nav-page";
     var repo = localStorage.getItem("navAdminRepo") || DEFAULT_REPO;
-    var token = localStorage.getItem("navAdminToken") || "";
+    var githubToken = localStorage.getItem("navAdminToken") || "";
     var shortPwd = localStorage.getItem("navAdminPwd") || "";
+    var mode = null; // backend | github
+    var authMode = "login"; // login | register
     var data = [];
-    var editing = null; // { sectionIndex, itemIndex } 或 { sectionIndex }
+    var editing = null;
     var modalType = "item"; // item | section
 
     function $(id) { return document.getElementById(id); }
-    function alert(msg, ok) {
-      var box = $("alertBox");
-      box.innerHTML = '<div class="alert ' + (ok ? "ok" : "err") + '">' + msg + "</div>";
-      if (ok) setTimeout(function () { box.innerHTML = ""; }, 4000);
+    function alertInto(el, msg, ok) {
+      el.innerHTML = '<div class="alert ' + (ok ? "ok" : "err") + '">' + msg + "</div>";
+      if (ok) setTimeout(function () { el.innerHTML = ""; }, 5000);
     }
-    function b64encode(str) {
-      return btoa(unescape(encodeURIComponent(str)));
+    function b64encode(str) { return btoa(unescape(encodeURIComponent(str))); }
+    function esc(s) {
+      return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+      });
     }
 
-    /* ---------- 登录 ---------- */
-    function doLogin() {
+    /* ---------- 认证（后端模式） ---------- */
+    function toggleAuthMode() {
+      authMode = authMode === "login" ? "register" : "login";
+      renderAuthPanel();
+    }
+    function renderAuthPanel() {
+      var isRegister = authMode === "register";
+      $("authTitle").textContent = isRegister ? "🪪 注册管理员账号" : "🔐 登录后台";
+      $("authDesc").textContent = isRegister
+        ? "这是第一次使用：注册的账号将成为唯一管理员，后续修改和编辑导航页都需要用它登录。"
+        : "请输入管理员账号和密码。";
+      $("authConfirmField").hidden = !isRegister;
+      $("authSubmitBtn").textContent = isRegister ? "注册并进入后台" : "登录";
+      $("authSwitchBtn").textContent = isRegister ? "已有账号？去登录" : "没有账号？去注册";
+      $("authAlert").innerHTML = "";
+    }
+    function submitAuth() {
+      var username = $("authUsername").value.trim();
+      var password = $("authPassword").value;
+      var confirm = $("authConfirm").value;
+      if (!username || !password) { alertInto($("authAlert"), "请填写用户名和密码", false); return; }
+      if (authMode === "register") {
+        if (password !== confirm) { alertInto($("authAlert"), "两次输入的密码不一致", false); return; }
+        NavAdmin.register(username, password)
+          .then(function (res) { enterEditor(res.user.username); loadData(); })
+          .catch(function (e) { alertInto($("authAlert"), "注册失败：" + e.message, false); });
+      } else {
+        NavAdmin.login(username, password)
+          .then(function (res) { enterEditor(res.user.username); loadData(); })
+          .catch(function (e) { alertInto($("authAlert"), "登录失败：" + e.message, false); });
+      }
+    }
+
+    function doLogout() {
+      if (mode === "backend") {
+        NavAdmin.logout().then(function () {
+          showAuthPanel();
+        });
+      } else {
+        localStorage.removeItem("navAdminToken");
+        localStorage.removeItem("navAdminPwd");
+        githubToken = ""; shortPwd = "";
+        showGithubPanel();
+      }
+    }
+
+    /* ---------- GitHub 回退登录 ---------- */
+    function doGithubLogin() {
       var r = $("repoInput").value.trim();
       var t = $("tokenInput").value.trim();
       var p = $("pwdInput").value.trim();
-      if (!r || !t || !p) { alert("请完整填写仓库、Token 和短密码", false); return; }
-      repo = r; token = t; shortPwd = p;
+      if (!r || !t || !p) { alertInto($("githubAlert"), "请完整填写仓库、Token 和短密码", false); return; }
+      repo = r; githubToken = t; shortPwd = p;
       localStorage.setItem("navAdminRepo", repo);
-      localStorage.setItem("navAdminToken", token);
+      localStorage.setItem("navAdminToken", githubToken);
       localStorage.setItem("navAdminPwd", shortPwd);
-      enterEditor();
+      enterEditor(null);
       loadData();
     }
-    function doLogout() {
-      localStorage.removeItem("navAdminToken");
-      localStorage.removeItem("navAdminPwd");
-      token = ""; shortPwd = "";
-      showLogin();
+
+    /* ---------- 面板切换 ---------- */
+    function showAuthPanel() {
+      $("authPanel").hidden = false;
+      $("githubPanel").hidden = true;
+      $("editorPanel").hidden = true;
+      renderAuthPanel();
     }
-    function showLogin() {
-      $("loginPanel").hidden = false;
+    function showGithubPanel() {
+      $("authPanel").hidden = true;
+      $("githubPanel").hidden = false;
       $("editorPanel").hidden = true;
       $("repoInput").value = repo || DEFAULT_REPO;
-      $("tokenInput").value = "";
-      $("pwdInput").value = "";
     }
-    function enterEditor() {
-      $("loginPanel").hidden = true;
+    function enterEditor(username) {
+      $("authPanel").hidden = true;
+      $("githubPanel").hidden = true;
       $("editorPanel").hidden = false;
-      $("repoLabel").textContent = "仓库：" + repo + " · 数据文件：links.json";
+      $("pwdBtn").hidden = mode !== "backend";
+      if (mode === "backend") {
+        $("repoLabel").textContent = "无服务器后端模式 · 管理员：" + (username || "已登录") + " · 数据保存在 Cloudflare D1";
+      } else {
+        $("repoLabel").textContent = "纯静态回退模式 · 仓库：" + repo + " · 数据文件：links.json";
+      }
     }
 
     /* ---------- 数据加载 / 保存 ---------- */
     function loadData() {
+      if (mode === "backend") {
+        NavAdmin.getData()
+          .then(function (res) { data = res.links || []; renderSections(); alertInto($("alertBox"), "已从云端加载 " + data.length + " 个分类", true); })
+          .catch(function (e) {
+            if (e.status === 404) { data = []; renderSections(); alertInto($("alertBox"), "云端暂无数据，请新建分类后保存", true); }
+            else { alertInto($("alertBox"), "加载失败：" + e.message, false); }
+          });
+        return;
+      }
+
       fetch("https://api.github.com/repos/" + repo + "/contents/links.json", {
-        headers: { Authorization: "token " + token, Accept: "application/vnd.github+json" }
+        headers: { Authorization: "token " + githubToken, Accept: "application/vnd.github+json" }
       })
         .then(function (res) {
           if (res.status === 401 || res.status === 403) throw new Error("Token 无效或权限不足，请重新登录");
@@ -263,34 +379,37 @@
         .then(function (file) {
           data = JSON.parse(decodeURIComponent(escape(atob(file.content.replace(/\s/g, "")))));
           renderSections();
-          alert("已从 GitHub 加载 " + data.length + " 个分类", true);
+          alertInto($("alertBox"), "已从 GitHub 加载 " + data.length + " 个分类", true);
         })
         .catch(function (err) {
-          alert("加载失败：" + err.message + "。可尝试重新登录，或新建分类后保存。", false);
+          alertInto($("alertBox"), "加载失败：" + err.message, false);
           renderSections();
         });
     }
 
-    function saveToGitHub() {
-      if (!token) { alert("请先登录", false); return; }
+    function saveData() {
+      if (mode === "backend") {
+        NavAdmin.putData(data)
+          .then(function () { alertInto($("alertBox"), "已保存到云端 ✅ 导航页会自动读取最新数据", true); })
+          .catch(function (e) { alertInto($("alertBox"), "保存失败：" + e.message, false); });
+        return;
+      }
+
+      if (!githubToken) { alertInto($("alertBox"), "请先登录", false); return; }
       var content = JSON.stringify(data, null, 2);
       var url = "https://api.github.com/repos/" + repo + "/contents/links.json";
-      fetch(url, { headers: { Authorization: "token " + token, Accept: "application/vnd.github+json" } })
+      fetch(url, { headers: { Authorization: "token " + githubToken, Accept: "application/vnd.github+json" } })
         .then(function (res) {
           if (res.status === 404) return { sha: null };
           if (!res.ok) throw new Error("读取文件失败：" + res.status);
           return res.json();
         })
         .then(function (file) {
-          var body = {
-            message: "docs: 更新导航数据 links.json",
-            content: b64encode(content),
-            branch: "main"
-          };
+          var body = { message: "docs: 更新导航数据 links.json", content: b64encode(content), branch: "main" };
           if (file.sha) body.sha = file.sha;
           return fetch(url, {
             method: "PUT",
-            headers: { Authorization: "token " + token, Accept: "application/vnd.github+json" },
+            headers: { Authorization: "token " + githubToken, Accept: "application/vnd.github+json" },
             body: JSON.stringify(body)
           });
         })
@@ -298,12 +417,8 @@
           if (!res.ok) return res.json().then(function (j) { throw new Error(j.message || res.status); });
           return res.json();
         })
-        .then(function () {
-          alert("已保存到 GitHub ✅ 导航页约 1 分钟后生效（Cloudflare/Pages 通常几秒内）", true);
-        })
-        .catch(function (err) {
-          alert("保存失败：" + err.message, false);
-        });
+        .then(function () { alertInto($("alertBox"), "已保存到 GitHub ✅ 导航页约 1 分钟后生效", true); })
+        .catch(function (err) { alertInto($("alertBox"), "保存失败：" + err.message, false); });
     }
 
     function exportJSON() {
@@ -324,9 +439,9 @@
           if (!Array.isArray(parsed)) throw new Error("格式应为数组");
           data = parsed;
           renderSections();
-          alert("导入成功，记得点击“保存到 GitHub”", true);
+          alertInto($("alertBox"), "导入成功，记得点击“保存”", true);
         } catch (e) {
-          alert("导入失败：" + e.message, false);
+          alertInto($("alertBox"), "导入失败：" + e.message, false);
         }
       };
       reader.readAsText(file);
@@ -376,10 +491,10 @@
           var actions = document.createElement("div");
           actions.className = "item-actions";
           actions.innerHTML =
-            '<button class="mini" onclick="moveItem(' + si + "," + ii + ",-1)\">↑</button>" +
-            '<button class="mini" onclick="moveItem(' + si + "," + ii + ",1)\">↓</button>" +
-            '<button class="mini" onclick="editItem(' + si + "," + ii + ')">✏️</button>" +
-            '<button class="mini danger" onclick="deleteItem(' + si + "," + ii + ')">✕</button>';
+            '<button class="mini" onclick="moveItem(' + si + ',' + ii + ',-1)">↑</button>' +
+            '<button class="mini" onclick="moveItem(' + si + ',' + ii + ',1)">↓</button>' +
+            '<button class="mini" onclick="editItem(' + si + ',' + ii + ')">✏️</button>' +
+            '<button class="mini danger" onclick="deleteItem(' + si + ',' + ii + ')">✕</button>';
           row.appendChild(actions);
           card.appendChild(row);
         });
@@ -389,12 +504,6 @@
         add.innerHTML = '<button onclick="addItem(' + si + ')">➕ 添加站点</button>';
         card.appendChild(add);
         box.appendChild(card);
-      });
-    }
-
-    function esc(s) {
-      return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
-        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
       });
     }
 
@@ -476,19 +585,14 @@
     function saveModal() {
       if (modalType === "section") {
         var name = $("f_title").value.trim();
-        if (!name) { alert("分类名不能为空", false); return; }
-        if (editing.sectionIndex === -1) data.push({ section: name, items: [] });
+        if (!name) { alertInto($("alertBox"), "分类名不能为空", false); return; }
+        if (editing.sectionIndex === -1) data.push({ section: name, icon: "📁", items: [] });
         else data[editing.sectionIndex].section = name;
       } else {
         var title = $("f_title").value.trim();
         var url = $("f_url").value.trim();
-        if (!title || !url) { alert("标题和网址不能为空", false); return; }
-        var obj = {
-          title: title,
-          url: url,
-          desc: $("f_desc").value.trim(),
-          keywords: $("f_keywords").value.trim()
-        };
+        if (!title || !url) { alertInto($("alertBox"), "标题和网址不能为空", false); return; }
+        var obj = { title: title, url: url, desc: $("f_desc").value.trim(), keywords: $("f_keywords").value.trim() };
         var intranet = $("f_intranet").value.trim();
         var icon = $("f_icon").value.trim();
         if (intranet) obj.intranet = intranet;
@@ -499,19 +603,54 @@
       closeModal();
       renderSections();
     }
+
+    /* ---------- 修改密码 ---------- */
+    function openPwdModal() {
+      $("p_old").value = "";
+      $("p_new").value = "";
+      $("pwdMask").hidden = false;
+      $("p_old").focus();
+    }
+    function closePwdModal() {
+      $("pwdMask").hidden = true;
+    }
+    function savePwd() {
+      var oldPwd = $("p_old").value;
+      var newPwd = $("p_new").value;
+      if (!oldPwd || !newPwd) { alertInto($("alertBox"), "请填写原密码和新密码", false); return; }
+      NavAdmin.changePassword(oldPwd, newPwd)
+        .then(function () { closePwdModal(); alertInto($("alertBox"), "密码已修改 ✅", true); })
+        .catch(function (e) { alertInto($("alertBox"), "修改失败：" + e.message, false); });
+    }
+
     $("modalSaveBtn").addEventListener("click", saveModal);
-    $("modalMask").addEventListener("click", function (e) {
-      if (e.target === $("modalMask")) closeModal();
-    });
+    $("pwdSaveBtn").addEventListener("click", savePwd);
+    $("modalMask").addEventListener("click", function (e) { if (e.target === $("modalMask")) closeModal(); });
+    $("pwdMask").addEventListener("click", function (e) { if (e.target === $("pwdMask")) closePwdModal(); });
 
     /* ---------- 启动 ---------- */
     (function boot() {
-      if (token && shortPwd) {
-        enterEditor();
-        loadData();
-      } else {
-        showLogin();
-      }
+      NavAdmin.setupStatus(true).then(function (status) {
+        if (status.configured) {
+          mode = "backend";
+          if (NavAdmin.getToken()) {
+            NavAdmin.me()
+              .then(function (res) { enterEditor(res.user.username); loadData(); })
+              .catch(function () { showAuthPanel(); });
+          } else {
+            authMode = status.hasAdmin ? "login" : "register";
+            showAuthPanel();
+          }
+        } else {
+          mode = "github";
+          if (githubToken && shortPwd) {
+            enterEditor(null);
+            loadData();
+          } else {
+            showGithubPanel();
+          }
+        }
+      });
     })();
   </script>
 </body>

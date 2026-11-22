@@ -1,5 +1,6 @@
 /* =========================================================
  *  导航页主逻辑（纯原生 JS，无依赖，无构建）
+ *  新增：问候语/时钟、分区图标、无服务器账号登录与前台管理
  * ========================================================= */
 (function () {
   "use strict";
@@ -15,15 +16,22 @@
   /* ---------- 状态 ---------- */
   var linksData = [];
   var isIntranet = localStorage.getItem("netMode") === "intranet";
-  var layout = localStorage.getItem("layout") || "waterfall"; // waterfall | tabs
-  var density = localStorage.getItem("density") || "comfortable"; // comfortable | compact
-  var themeOverride = localStorage.getItem("theme") || CFG.theme || "auto"; // auto | light | dark
+  var layout = localStorage.getItem("layout") || "waterfall";
+  var density = localStorage.getItem("density") || "comfortable";
+  var themeOverride = localStorage.getItem("theme") || CFG.theme || "auto";
   var currentCategoryId = null;
   var currentEngine = null;
   var enginePanelOpen = false;
   var currentCategoryIndex = 0;
   var preSearchIndex = 0;
   var searchStateSaved = false;
+
+  var backendConfigured = false;
+  var backendStatus = { hasAdmin: false, dataExists: false };
+  var loggedUser = null;
+  var editMode = false;
+  var authMode = "login"; // login | register
+  var editing = null; // 前台编辑：{ sectionIndex, itemIndex, type }
 
   /* ---------- 小工具 ---------- */
   function $(id) { return document.getElementById(id); }
@@ -55,9 +63,7 @@
       if (typeof fn === "function") {
         return fn(text, { toneType: "none" }).replace(/\s+/g, "").toLowerCase();
       }
-    } catch (e) {
-      /* 忽略拼音错误，搜索降级为原文匹配 */
-    }
+    } catch (e) { /* ignore */ }
     return text.toLowerCase();
   }
   function safePinyinFirst(text) {
@@ -115,6 +121,27 @@
       if (t) t.textContent = (CFG.favicon ? CFG.favicon + " " : "") + CFG.title;
     }
     if (CFG.subtitle && $("pageSubtitle")) $("pageSubtitle").textContent = CFG.subtitle;
+  }
+
+  /* ---------- 问候语 / 时钟 ---------- */
+  function greetingText() {
+    var h = new Date().getHours();
+    if (h < 5) return "夜深了";
+    if (h < 9) return "早上好";
+    if (h < 12) return "上午好";
+    if (h < 14) return "中午好";
+    if (h < 18) return "下午好";
+    return "晚上好";
+  }
+  function pad(n) { return n < 10 ? "0" + n : "" + n; }
+  function renderGreeting() {
+    var el = $("greeting");
+    if (!el) return;
+    var now = new Date();
+    var week = ["日", "一", "二", "三", "四", "五", "六"][now.getDay()];
+    var date = now.getFullYear() + "年" + (now.getMonth() + 1) + "月" + now.getDate() + "日 星期" + week;
+    var time = pad(now.getHours()) + ":" + pad(now.getMinutes()) + ":" + pad(now.getSeconds());
+    el.textContent = "👋 " + greetingText() + " · " + date + " · " + time;
   }
 
   /* ---------- 搜索：分类与引擎 ---------- */
@@ -226,12 +253,13 @@
     return isIntranet && item.intranet ? item.intranet : item.url;
   }
 
-  function buildCard(item) {
+  function buildCard(item, sectionIndex, itemIndex) {
     var a = document.createElement("a");
     a.href = cardUrl(item);
     a.target = "_blank";
     a.rel = "noopener noreferrer";
     a.className = "card";
+    a.style.animationDelay = Math.min(itemIndex, 14) * 28 + "ms";
 
     var rawTitle = (item.title || "").replace(/\s+/g, "");
     a.dataset.title = (item.title || "").toLowerCase();
@@ -291,6 +319,26 @@
     a.appendChild(top);
     a.appendChild(desc);
     a.appendChild(popup);
+
+    // 前台管理：编辑模式下的卡片操作按钮
+    if (editMode) {
+      var ops = document.createElement("div");
+      ops.className = "card-ops";
+      ops.innerHTML =
+        '<button type="button" class="card-op" title="编辑">✏️</button>' +
+        '<button type="button" class="card-op danger" title="删除">✕</button>';
+      ops.querySelectorAll("button")[0].addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        openSiteModal(sectionIndex, itemIndex);
+      });
+      ops.querySelectorAll("button")[1].addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        deleteSite(sectionIndex, itemIndex);
+      });
+      a.appendChild(ops);
+    }
     return a;
   }
 
@@ -304,13 +352,29 @@
 
       var h2 = document.createElement("h2");
       h2.className = "section-title";
-      h2.textContent = section.section;
+      var titleSpan = document.createElement("span");
+      titleSpan.textContent = (section.icon ? section.icon + " " : "") + (section.section || "");
+      h2.appendChild(titleSpan);
+
+      if (editMode) {
+        var secOps = document.createElement("span");
+        secOps.className = "section-ops";
+        secOps.innerHTML =
+          '<button type="button" class="mini-btn" title="添加站点">＋ 站点</button>' +
+          '<button type="button" class="mini-btn" title="重命名分类">✏️</button>' +
+          '<button type="button" class="mini-btn danger" title="删除分类">🗑️</button>';
+        secOps.querySelectorAll("button")[0].addEventListener("click", function () { openSiteModal(index, -1); });
+        secOps.querySelectorAll("button")[1].addEventListener("click", function () { renameSectionFront(index); });
+        secOps.querySelectorAll("button")[2].addEventListener("click", function () { deleteSectionFront(index); });
+        h2.appendChild(secOps);
+      }
+
       sec.appendChild(h2);
 
       var grid = document.createElement("div");
       grid.className = "link-container";
-      (section.items || []).forEach(function (item) {
-        grid.appendChild(buildCard(item));
+      (section.items || []).forEach(function (item, ii) {
+        grid.appendChild(buildCard(item, index, ii));
       });
       sec.appendChild(grid);
       main.appendChild(sec);
@@ -325,7 +389,7 @@
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "category-tab-item" + (index === currentCategoryIndex ? " active" : "");
-      btn.textContent = section.section;
+      btn.textContent = (section.icon ? section.icon + " " : "") + section.section;
       btn.addEventListener("click", function () {
         currentCategoryIndex = index;
         syncActiveTab();
@@ -372,7 +436,6 @@
     localStorage.setItem("layout", layout);
     applyLayout();
     if (layout === "tabs") {
-      // 保证当前分类仍在可视范围
       requestAnimationFrame(function () {
         var active = $("categoryTabsRow") && $("categoryTabsRow").querySelector(".category-tab-item.active");
         if (active) active.scrollIntoView({ behavior: "instant", block: "nearest", inline: "center" });
@@ -418,7 +481,6 @@
       section.classList.toggle("section-hidden", visible === 0);
     });
 
-    // 单页标签模式：搜索时临时展示所有分类并隐藏无结果标签
     if (layout === "tabs") {
       var row = $("categoryTabsRow");
       var tabs = row ? row.querySelectorAll(".category-tab-item") : [];
@@ -452,7 +514,6 @@
       }
     }
 
-    // 无结果提示
     var noResult = $("noResult");
     if (!query) {
       if (noResult) noResult.remove();
@@ -503,6 +564,188 @@
     });
   }
 
+  /* ---------- 前台管理：登录 / 编辑 ---------- */
+  function toast(msg) {
+    var t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(function () { t.classList.add("show"); });
+    setTimeout(function () {
+      t.classList.remove("show");
+      setTimeout(function () { t.remove(); }, 300);
+    }, 2600);
+  }
+
+  function updateManageUI() {
+    var loginBtn = $("loginBtn");
+    var editBtn = $("editBtn");
+    if (loginBtn) {
+      loginBtn.hidden = !backendConfigured;
+      if (backendConfigured) {
+        loginBtn.textContent = loggedUser ? "👤 " + loggedUser : "🔐 登录";
+        loginBtn.title = loggedUser ? "点击退出登录" : "登录后可管理导航页";
+      }
+    }
+    if (editBtn) {
+      editBtn.hidden = !(backendConfigured && loggedUser);
+      editBtn.textContent = editMode ? "✅ 完成" : "✏️ 编辑";
+      editBtn.classList.toggle("active", editMode);
+      editBtn.title = editMode ? "退出编辑模式" : "进入前台管理（增删改站点）";
+    }
+    var footer = $("footerText");
+    if (footer) {
+      footer.textContent = backendConfigured
+        ? (loggedUser ? "已登录：" + loggedUser + " · 数据保存在云端" : "登录后可前台管理 · 数据保存在云端")
+        : "数据配置：links.json · 全局设置：config.js";
+    }
+  }
+
+  function renderAuthModal() {
+    var isRegister = authMode === "register";
+    $("authTitle").textContent = isRegister ? "🪪 注册管理员账号" : "🔐 登录";
+    $("authDesc").textContent = isRegister
+      ? "首次使用：注册的账号将成为管理员，后续编辑导航页都需登录。"
+      : "登录后可编辑导航页内容。";
+    $("authConfirmField").hidden = !isRegister;
+    $("authSubmitBtn").textContent = isRegister ? "注册并登录" : "登录";
+    $("authSwitchBtn").textContent = isRegister ? "已有账号？去登录" : "没有账号？去注册";
+    $("authAlert").innerHTML = "";
+  }
+  function openAuthModal(mode) {
+    authMode = mode || (backendStatus.hasAdmin ? "login" : "register");
+    $("authUsername").value = "";
+    $("authPassword").value = "";
+    $("authConfirm").value = "";
+    renderAuthModal();
+    $("authMask").hidden = false;
+    setTimeout(function () { $("authUsername").focus(); }, 50);
+  }
+  function closeAuthModal() {
+    $("authMask").hidden = true;
+  }
+  function toggleAuthMode() {
+    authMode = authMode === "login" ? "register" : "login";
+    renderAuthModal();
+  }
+  function submitAuth() {
+    var username = $("authUsername").value.trim();
+    var password = $("authPassword").value;
+    var confirm = $("authConfirm").value;
+    var alertEl = $("authAlert");
+    if (!username || !password) { alertEl.innerHTML = '<div class="alert err">请填写用户名和密码</div>'; return; }
+    if (authMode === "register") {
+      if (password !== confirm) { alertEl.innerHTML = '<div class="alert err">两次输入的密码不一致</div>'; return; }
+      NavAdmin.register(username, password)
+        .then(function (res) { onLoginSuccess(res.user.username); })
+        .catch(function (e) { alertEl.innerHTML = '<div class="alert err">' + (e.message || "注册失败") + "</div>"; });
+    } else {
+      NavAdmin.login(username, password)
+        .then(function (res) { onLoginSuccess(res.user.username); })
+        .catch(function (e) { alertEl.innerHTML = '<div class="alert err">' + (e.message || "登录失败") + "</div>"; });
+    }
+  }
+  function onLoginSuccess(username) {
+    loggedUser = username;
+    closeAuthModal();
+    updateManageUI();
+    toast("欢迎，" + username + "！点击“✏️ 编辑”即可管理导航页");
+  }
+  function doLogoutFront() {
+    if (!loggedUser) { openAuthModal(); return; }
+    NavAdmin.logout().then(function () {
+      loggedUser = null;
+      editMode = false;
+      updateManageUI();
+      refresh();
+      toast("已退出登录");
+    });
+  }
+  function cycleEditMode() {
+    if (!backendConfigured) return;
+    if (!loggedUser) { openAuthModal(); return; }
+    editMode = !editMode;
+    updateManageUI();
+    refresh();
+  }
+
+  /* ---------- 前台管理：增删改 ---------- */
+  function openSiteModal(sectionIndex, itemIndex) {
+    editing = { type: "item", sectionIndex: sectionIndex, itemIndex: itemIndex };
+    $("editTitle").textContent = itemIndex === -1 ? "添加站点 → " + linksData[sectionIndex].section : "编辑站点";
+    $("e_title").value = itemIndex === -1 ? "" : (linksData[sectionIndex].items[itemIndex].title || "");
+    $("e_url").value = itemIndex === -1 ? "" : (linksData[sectionIndex].items[itemIndex].url || "");
+    $("e_intranet").value = itemIndex === -1 ? "" : (linksData[sectionIndex].items[itemIndex].intranet || "");
+    $("e_desc").value = itemIndex === -1 ? "" : (linksData[sectionIndex].items[itemIndex].desc || "");
+    $("e_keywords").value = itemIndex === -1 ? "" : (linksData[sectionIndex].items[itemIndex].keywords || linksData[sectionIndex].items[itemIndex]["data-desc"] || "");
+    $("e_icon").value = itemIndex === -1 ? "" : (linksData[sectionIndex].items[itemIndex].icon || "");
+    $("editMask").hidden = false;
+    setTimeout(function () { $("e_title").focus(); }, 50);
+  }
+  function closeEditModal() {
+    $("editMask").hidden = true;
+    editing = null;
+  }
+  function saveSiteModal() {
+    var title = $("e_title").value.trim();
+    var url = $("e_url").value.trim();
+    if (!title || !url) { toast("标题和网址不能为空"); return; }
+    var item = {
+      title: title,
+      url: url,
+      desc: $("e_desc").value.trim(),
+      keywords: $("e_keywords").value.trim()
+    };
+    if ($("e_intranet").value.trim()) item.intranet = $("e_intranet").value.trim();
+    if ($("e_icon").value.trim()) item.icon = $("e_icon").value.trim();
+
+    if (editing.itemIndex === -1) {
+      linksData[editing.sectionIndex].items.push(item);
+    } else {
+      linksData[editing.sectionIndex].items[editing.itemIndex] = item;
+    }
+    closeEditModal();
+    persistAndRefresh("站点已保存");
+  }
+  function deleteSite(sectionIndex, itemIndex) {
+    var item = linksData[sectionIndex].items[itemIndex];
+    if (!confirm("确定删除站点「" + (item.title || "") + "」？")) return;
+    linksData[sectionIndex].items.splice(itemIndex, 1);
+    persistAndRefresh("站点已删除");
+  }
+  function addSectionFront() {
+    var name = prompt("新分类名称：");
+    if (!name) return;
+    linksData.push({ section: name.trim(), icon: "📁", items: [] });
+    persistAndRefresh("分类已添加");
+  }
+  function renameSectionFront(sectionIndex) {
+    var name = prompt("重命名分类：", linksData[sectionIndex].section);
+    if (!name) return;
+    linksData[sectionIndex].section = name.trim();
+    persistAndRefresh("分类已重命名");
+  }
+  function deleteSectionFront(sectionIndex) {
+    if (!confirm("确定删除分类「" + (linksData[sectionIndex].section || "") + "」及其所有站点？")) return;
+    linksData.splice(sectionIndex, 1);
+    persistAndRefresh("分类已删除");
+  }
+  function persistAndRefresh(msg) {
+    NavAdmin.putData(linksData)
+      .then(function () { toast(msg + " ✅"); })
+      .catch(function (e) { toast("保存失败：" + (e.message || e)); });
+    refresh();
+  }
+
+  /* ---------- 刷新渲染 ---------- */
+  function refresh() {
+    renderCards(linksData);
+    applyLayout();
+    updateNetToggleBtn();
+    filterLinks();
+    updateManageUI();
+  }
+
   /* ---------- 事件绑定 ---------- */
   function bindEvents() {
     $("themeToggleBtn").addEventListener("click", cycleTheme);
@@ -512,6 +755,15 @@
     $("searchSubmitBtn").addEventListener("click", doSearch);
     $("clearBtn").addEventListener("click", clearSearch);
     $("netToggleBtn").addEventListener("click", toggleNetMode);
+    $("loginBtn").addEventListener("click", doLogoutFront);
+    $("editBtn").addEventListener("click", cycleEditMode);
+
+    $("authSubmitBtn").addEventListener("click", submitAuth);
+    $("authSwitchBtn").addEventListener("click", toggleAuthMode);
+    $("authMask").addEventListener("click", function (e) { if (e.target === $("authMask")) closeAuthModal(); });
+    $("editSaveBtn").addEventListener("click", saveSiteModal);
+    $("editCancelBtn").addEventListener("click", closeEditModal);
+    $("editMask").addEventListener("click", function (e) { if (e.target === $("editMask")) closeEditModal(); });
 
     var input = $("searchInput");
     input.addEventListener("input", filterLinks);
@@ -559,12 +811,48 @@
     }
   }
 
-  /* ---------- Service Worker（可选 PWA 离线缓存） ---------- */
+  /* ---------- 数据加载 ---------- */
+  function loadStaticLinks() {
+    fetch(LINKS_FILE + "?t=" + Date.now())
+      .then(function (res) {
+        if (!res.ok) throw new Error("加载 " + LINKS_FILE + " 失败：" + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        linksData = data || [];
+        refresh();
+      })
+      .catch(function (err) {
+        var main = $("main-content");
+        if (main) {
+          main.innerHTML =
+            '<div class="no-result">⚠️ ' + (err && err.message ? err.message : "数据加载失败") +
+            '。请检查 ' + LINKS_FILE + ' 是否存在且格式正确。</div>';
+        }
+      });
+  }
+
+  function loadBackendData() {
+    NavAdmin.getData()
+      .then(function (res) {
+        linksData = res.links || [];
+        refresh();
+      })
+      .catch(function (err) {
+        if (err.status === 404) {
+          linksData = [];
+          refresh();
+        } else {
+          toast("云端数据加载失败，回退到本地 " + LINKS_FILE);
+          loadStaticLinks();
+        }
+      });
+  }
+
+  /* ---------- Service Worker ---------- */
   function initServiceWorker() {
     if ("serviceWorker" in navigator && location.protocol === "https:") {
-      navigator.serviceWorker.register("sw.js").catch(function () {
-        /* 注册失败不影响使用 */
-      });
+      navigator.serviceWorker.register("sw.js").catch(function () {});
     }
   }
 
@@ -580,25 +868,23 @@
     applyDensity();
     initBackTop();
     initServiceWorker();
+    renderGreeting();
+    setInterval(renderGreeting, 1000);
+    updateManageUI();
 
-    fetch(LINKS_FILE + "?t=" + Date.now())
-      .then(function (res) {
-        if (!res.ok) throw new Error("加载 " + LINKS_FILE + " 失败：" + res.status);
-        return res.json();
-      })
-      .then(function (data) {
-        linksData = data || [];
-        renderCards(linksData);
-        applyLayout();
-        updateNetToggleBtn();
-        filterLinks();
-      })
-      .catch(function (err) {
-        var main = $("main-content");
-        if (main) {
-          main.innerHTML =
-            '<div class="no-result">⚠️ ' + (err && err.message ? err.message : "数据加载失败") +
-            '。请检查 ' + LINKS_FILE + ' 是否存在且格式正确。</div>';
+    NavAdmin.setupStatus()
+      .then(function (status) {
+        backendConfigured = status.configured;
+        backendStatus = status;
+        if (backendConfigured) {
+          loadBackendData();
+          if (NavAdmin.getToken()) {
+            NavAdmin.me()
+              .then(function (res) { loggedUser = res.user.username; updateManageUI(); })
+              .catch(function () { updateManageUI(); });
+          }
+        } else {
+          loadStaticLinks();
         }
       });
   }

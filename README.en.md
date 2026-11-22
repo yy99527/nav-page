@@ -31,7 +31,9 @@ Live demo: <https://yy99527.github.io/nav-page/>
 - 📐 **Card density toggle** — comfortable / compact
 - 🏠 **Internet / intranet toggle** — great for NAS & home servers
 - 📱 **Responsive + PWA** — installable on mobile home screen
-- 💻 **Visual admin panel** — edit sites online, write back to GitHub
+- 🔐 **Optional account system** — register once as admin (Cloudflare D1), login required to edit
+- 💻 **Visual admin panel** — register/login and edit sites; data stored in the cloud
+- ✏️ **Front-end management** — after login, edit sites in place right on the home page
 - 🌄 **Built-in gradient background** — zero external requests; image API optional
 
 ---
@@ -88,6 +90,19 @@ Full deployment guides:
 | `keywords` | optional | Search keywords |
 | `icon` | optional | Custom icon URL/path |
 | `intranet` | optional | Intranet URL (for the intranet toggle) |
+
+---
+
+## 🔐 Admin & Accounts (optional)
+
+Open `https://your-domain/admin.html`:
+
+- **Serverless backend mode (Cloudflare D1)**: register once as the admin account,
+  then login is required to edit. After login, you can also click “✏️ Edit” on the
+  home page to manage sites in place. See
+  [docs/cloudflare-deploy.md](docs/cloudflare-deploy.md).
+- **Static fallback mode**: without D1 (GitHub Pages / Vercel / Netlify), the admin
+  panel falls back to GitHub Token editing and writes `links.json` back to your repo.
 
 ---
 

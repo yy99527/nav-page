@@ -186,6 +186,66 @@ wrangler deploy
 
 ---
 
+## 🔐 启用账号系统（注册管理员 · 登录编辑）
+
+导航页内置了**无服务器账号体系**：第一次打开后台可以注册账号，注册的账号即为
+管理员，之后修改和编辑导航页都需要登录；登录后也可以直接在导航页前台点击
+“✏️ 编辑”就地增删改。
+
+账号和数据保存在 **Cloudflare D1**（免费额度：5GB 存储 / 每天 500 万行读取），
+密码使用 PBKDF2 加盐哈希，不存明文。
+
+### 步骤（约 3 分钟）
+
+1. 先在本地安装并登录 wrangler（见上文“方式 C”）：
+
+   ```bash
+   npm install -g wrangler
+   wrangler login
+   ```
+
+2. 创建 D1 数据库：
+
+   ```bash
+   cd nav-page
+   npx wrangler d1 create nav-page-db
+   ```
+
+   复制返回结果中的 `database_id`（形如 `xxxxxxxx-xxxx-...`）。
+
+3. 编辑仓库根目录的 `wrangler.jsonc`，取消底部 `d1_databases` 注释并把
+   `database_id` 填进去：
+
+   ```jsonc
+   "d1_databases": [
+     {
+       "binding": "DB",
+       "database_name": "nav-page-db",
+       "database_id": "你复制的 database_id"
+     }
+   ]
+   ```
+
+4. 重新部署：
+
+   ```bash
+   npx wrangler deploy
+   ```
+
+5. 打开 `https://你的域名/admin.html`：
+   - 第一次：自动进入**注册管理员账号**页面，设置用户名和密码（密码至少 6 位）；
+   - 之后：同一账号登录后才能编辑。
+
+6. 回到导航页首页，右下角出现“🔐 登录”按钮，登录后点击“✏️ 编辑”，
+   即可**在前台直接管理**：卡片右上角 ✏️/✕ 编辑删除站点，分区标题右侧
+   “＋ 站点 / ✏️ / 🗑️”管理分类。
+
+> 💡 使用方式 A / B（一键部署或 Pages 连接 Git）时，如果**没有绑定 D1**，
+> 站点仍是纯静态导航页，`admin.html` 会自动回退为 **GitHub Token 编辑模式**，
+> 功能不受影响，只是没有“注册账号”这套登录体系。
+
+---
+
 ## 常见问题 FAQ
 
 **Q1：部署成功但打开是空白/报错？**

@@ -8,4 +8,17 @@
     "binding": "ASSETS",
     "not_found_handling": "none"
   }
+  // ─────────────────────────────────────────────────────────────
+  // 可选：启用账号系统（注册管理员 / 登录编辑 / 数据云端存储）
+  // 1. 执行：npx wrangler d1 create nav-page-db
+  // 2. 把返回的 database_id 填到下面，取消注释后重新部署：
+  //
+  // "d1_databases": [
+  //   {
+  //     "binding": "DB",
+  //     "database_name": "nav-page-db",
+  //     "database_id": "把这里替换成你的 D1 database_id"
+  //   }
+  // ]
+  // ─────────────────────────────────────────────────────────────
 }

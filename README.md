@@ -31,7 +31,9 @@
 - 📐 **卡片密度切换**：宽松 / 紧凑
 - 🏠 **内外网一键切换**：适合 NAS / 家庭服务器（外网域名 + 内网地址）
 - 📱 **响应式**：手机 / 平板 / 桌面自适应，可安装到主屏（PWA）
-- 💻 **可视化后台**：`admin.html` 在线增删改网站，直接写回 GitHub 仓库
+- 🔐 **账号体系（可选）**：配合 Cloudflare D1，首次注册即管理员，后续编辑需登录
+- 💻 **可视化后台**：`admin.html` 注册/登录后可增删改站点，数据存云端
+- ✏️ **前台管理**：登录后可在导航页首页直接就地编辑（增删改站点/分类）
 - 🌄 **内置渐变背景**：零外部请求；也可配置随机图片 API
 
 ---
@@ -45,7 +47,8 @@ nav-page/
 ├── main.js               # 核心逻辑（渲染、搜索、主题、布局）
 ├── config.js             # ⭐ 站点全局配置（标题、引擎、图标源、背景…）
 ├── links.json            # ⭐ 网站数据（分类与站点）
-├── admin.html            # 可视化后台（读写 GitHub 仓库）
+├── admin.html            # 可视化后台（账号登录 / 注册，读写云端数据）
+├── nav-admin.js          # 共享的无服务器后端 API 库（账号 + 数据）
 ├── manifest.webmanifest  # PWA 清单
 ├── sw.js                 # 离线缓存（数据文件始终网络优先）
 ├── pinyin-pro.min.js     # 拼音搜索库（本地化，无 CDN 依赖）
@@ -91,6 +94,7 @@ window.NAV_CONFIG = {
 | 字段 | 必填 | 说明 |
 | --- | --- | --- |
 | `section` | ✅ | 分类名称 |
+| `icon` | 可选 | 分类图标（emoji，如 💻） |
 | `title` | ✅ | 站点名称 |
 | `url` | ✅ | 外网地址 |
 | `desc` | 可选 | 卡片下方简介 |
@@ -104,6 +108,7 @@ window.NAV_CONFIG = {
 [
   {
     "section": "常用",
+    "icon": "⭐",
     "items": [
       {
         "title": "哔哩哔哩",
@@ -154,16 +159,19 @@ window.NAV_CONFIG = {
 
 ---
 
-## 💻 可视化后台（可选）
+## 💻 可视化后台与账号体系（可选）
 
 后台地址：`https://你的域名/admin.html`
 
-- 第一次使用：输入 GitHub Fine-grained Token（仅给本仓库 `Contents` 读写权限）+ 一个短密码。
-- 之后可在后台**在线增删分类和站点**，点“保存到 GitHub”直接更新 `links.json`。
-- 无需科学上网也可编辑（保存走 GitHub API）。
+- **无服务器后端模式（推荐，需 Cloudflare D1）**：第一次打开后台会引导**注册管理员账号**，
+  之后修改和编辑导航页都需要登录；登录后可在后台增删分类和站点，数据保存在云端。
+- **纯静态回退模式**：未绑定 D1 时（如 GitHub Pages / Vercel / Netlify），后台自动回退为
+  **GitHub Token 编辑模式**——输入 Fine-grained Token（仅给本仓库 `Contents` 读写权限），
+  直接写回仓库里的 `links.json`。
+- **前台管理**：在无服务器后端模式下，导航页首页右下角登录后点击“✏️ 编辑”，
+  即可在首页就地增删改站点和分类。
 
-> Token 申请：GitHub → Settings → Developer settings → Personal access tokens →
-> Fine-grained tokens → 选择本仓库 → Repository permissions → Contents → Read and write。
+> 启用账号体系的完整步骤见 **[docs/cloudflare-deploy.md](docs/cloudflare-deploy.md#-启用账号系统注册管理员--登录编辑)**。
 
 ---
 
